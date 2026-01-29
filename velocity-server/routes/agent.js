@@ -3,8 +3,14 @@ const router = express.Router();
 const axios = require('axios');
 const { dbHelpers } = require('../models/db');
 
-// Python agent URL (from environment or default)
-const PYTHON_AGENT_URL = process.env.PYTHON_AGENT_URL || 'http://localhost:8000';
+// Helper to get the Agent URL dynamically and fix trailing slashes
+const getAgentUrl = () => {
+    let url = process.env.PYTHON_AGENT_URL || 'http://localhost:8000';
+    if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+    return url;
+};
 
 // GET /api/agent/logs - Retrieve activity feed
 router.get('/logs', (req, res) => {
@@ -68,14 +74,14 @@ router.post('/start-scan', async (req, res) => {
             `Starting autonomous scan for targets: ${targets.join(', ')}`
         );
 
-        // Send immediate response
+        // Send immediate response to frontend so button doesn't spin forever
         res.json({
             success: true,
             message: 'Scan initiated',
             status: 'running'
         });
 
-        // Trigger Python agent asynchronously (don't await)
+        // Trigger Python agent asynchronously
         triggerPythonAgent(targets).catch(error => {
             console.error('Python agent error:', error);
             dbHelpers.createLog(
@@ -95,69 +101,69 @@ router.post('/start-scan', async (req, res) => {
 
 // Helper function to trigger Python agent
 async function triggerPythonAgent(targets) {
+    const agentUrl = getAgentUrl();
     try {
         dbHelpers.createLog(
             'Agent Communication',
             'running',
-            `Contacting Python agent at ${PYTHON_AGENT_URL}`
+            `Contacting Python agent at ${agentUrl}/scrape`
         );
 
-        const response = await axios.post(`${PYTHON_AGENT_URL}/scrape`, {
-            targets: targets
+        // Make the POST request to the Python Agent
+        const response = await axios.post(`${agentUrl}/scrape`, {
+            target: targets[0] // Sending first target or 'default'
         }, {
-            timeout: 60000 // 60 second timeout
+            timeout: 90000 // Extended 90 second timeout for cloud scraping
         });
 
-        if (response.data.success) {
+        // The Python agent returns { success: true, results: [...] }
+        if (response.data && response.data.results) {
+            const results = response.data.results;
+
+            // Save results to database (assuming dbHelpers has this)
+            if (dbHelpers.saveScrapedData) {
+                dbHelpers.saveScrapedData(results);
+            }
+
             dbHelpers.createLog(
                 'Scan Completed',
                 'success',
-                `Successfully scraped ${response.data.results?.length || 0} items`
+                `Successfully scraped ${results.length} items from the AI Agent`
             );
         } else {
-            dbHelpers.createLog(
-                'Scan Warning',
-                'error',
-                response.data.message || 'Unknown error from Python agent'
-            );
+            throw new Error('Invalid response format from Python Agent');
         }
 
     } catch (error) {
-        if (error.code === 'ECONNREFUSED') {
-            dbHelpers.createLog(
-                'Agent Unavailable',
-                'error',
-                `Python agent not running at ${PYTHON_AGENT_URL}. Please start the agent service.`
-            );
-        } else {
-            dbHelpers.createLog(
-                'Agent Error',
-                'error',
-                error.message
-            );
-        }
-        throw error;
+        const errorMsg = error.response ? `Agent responded with ${error.response.status}` : error.message;
+        dbHelpers.createLog(
+            'Agent Error',
+            'error',
+            `Communication failure: ${errorMsg}`
+        );
+        console.error('Agent Trigger Error:', errorMsg);
     }
 }
 
-// GET /api/agent/status - Check agent status (health check)
+// GET /api/agent/status - Check agent status
 router.get('/status', async (req, res) => {
+    const agentUrl = getAgentUrl();
     try {
-        const response = await axios.get(`${PYTHON_AGENT_URL}/health`, {
+        const response = await axios.get(`${agentUrl}/`, {
             timeout: 5000
         });
 
         res.json({
             success: true,
             agent_status: 'online',
-            agent_url: PYTHON_AGENT_URL,
+            agent_url: agentUrl,
             agent_data: response.data
         });
     } catch (error) {
         res.json({
             success: false,
             agent_status: 'offline',
-            agent_url: PYTHON_AGENT_URL,
+            agent_url: agentUrl,
             error: error.message
         });
     }
