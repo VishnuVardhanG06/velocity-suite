@@ -106,7 +106,6 @@ const dbHelpers = {
         db.run('INSERT INTO products (name, category, competitor, insight) VALUES (?, ?, ?, ?)',
             [name, category, competitor, insight]);
 
-        // Reliability fix for sql.js: get ID immediately after insert
         const result = db.exec('SELECT last_insert_rowid() as id');
         const id = result[0].values[0][0];
 
@@ -198,4 +197,90 @@ const dbHelpers = {
             VALUES (?, ?, ?, ?, ?)
         `, [productId, sentimentScore, sentimentText, sourceUrl, rawReviews]);
 
-        const result = db
+        const result = db.exec('SELECT last_insert_rowid() as id');
+        const id = result[0].values[0][0];
+
+        saveDatabase();
+        return id;
+    },
+
+    getAverageSentiment: () => {
+        const stmt = db.prepare(`
+            SELECT AVG(sentiment_score) as avg_sentiment 
+            FROM sentiment_facts
+        `);
+        stmt.step();
+        const result = stmt.getAsObject();
+        stmt.free();
+        return result.avg_sentiment || 0;
+    },
+
+    // Agent Logs
+    getRecentLogs: (limit = 50) => {
+        const stmt = db.prepare(`
+            SELECT * FROM agent_logs 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        `);
+        stmt.bind([limit]);
+        const results = [];
+        while (stmt.step()) {
+            results.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return results;
+    },
+
+    createLog: (action, status, details = null) => {
+        db.run(`
+            INSERT INTO agent_logs (action, status, details)
+            VALUES (?, ?, ?)
+        `, [action, status, details]);
+        saveDatabase();
+    },
+
+    // Analytics
+    getProductWithDetails: (productId) => {
+        const stmt1 = db.prepare('SELECT * FROM products WHERE id = ?');
+        stmt1.bind([productId]);
+        let product = null;
+        if (stmt1.step()) {
+            product = stmt1.getAsObject();
+        }
+        stmt1.free();
+
+        if (!product) return null;
+
+        const stmt2 = db.prepare(`
+            SELECT * FROM prices 
+            WHERE product_id = ? 
+            ORDER BY scraped_at DESC
+        `);
+        stmt2.bind([productId]);
+        const prices = [];
+        while (stmt2.step()) {
+            prices.push(stmt2.getAsObject());
+        }
+        stmt2.free();
+
+        const stmt3 = db.prepare(`
+            SELECT * FROM sentiment_facts 
+            WHERE product_id = ? 
+            ORDER BY extracted_at DESC
+        `);
+        stmt3.bind([productId]);
+        const sentiments = [];
+        while (stmt3.step()) {
+            sentiments.push(stmt3.getAsObject());
+        }
+        stmt3.free();
+
+        return {
+            ...product,
+            prices,
+            sentiments
+        };
+    }
+};
+
+module.exports = { initDatabase, saveDatabase, dbHelpers };
