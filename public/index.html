@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velocity Suite | Grounded Autonomous Intelligence</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="bg-primary font-inter">
+    <!-- Header -->
+    <header class="glass-panel border-b border-accent/20">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="neon-glow-icon">
+                        <svg class="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Velocity Suite</h1>
+                        <p class="text-xs text-gray-400">Grounded Autonomous Intelligence</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="status-indicator" id="agentStatus">
+                        <span class="status-dot"></span>
+                        <span class="text-sm text-gray-300">Agent Ready</span>
+                    </div>
+                    <button id="startScanBtn" class="scan-button group">
+                        <svg class="w-5 h-5 mr-2 group-hover:animate-spin" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        Start Scan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="glass-panel border-b border-accent/10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex space-x-1">
+                <button class="tab-button active" data-tab="market-pulse">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    Market Pulse
+                </button>
+                <button class="tab-button" data-tab="intelligence-grid">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                        </path>
+                    </svg>
+                    Intelligence Grid
+                </button>
+                <button class="tab-button" data-tab="swot-analysis">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                    SWOT Analysis
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Tab 1: Market Pulse -->
+        <div id="market-pulse" class="tab-content active">
+            <!-- Strategic Overview Card -->
+            <div id="strategicOverview" class="mb-8">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card group">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm mb-1">Average Price</p>
+                            <h3 class="text-3xl font-bold text-white" id="avgPrice">$0.00</h3>
+                        </div>
+                        <div
+                            class="kpi-icon bg-green-500/10 text-green-400 group-hover:bg-green-500/20 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card group">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm mb-1">Sentiment Score</p>
+                            <h3 class="text-3xl font-bold text-white" id="avgSentiment">0.00</h3>
+                        </div>
+                        <div class="kpi-icon bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card group">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm mb-1">Total Products</p>
+                            <h3 class="text-3xl font-bold text-white" id="totalProducts">0</h3>
+                        </div>
+                        <div
+                            class="kpi-icon bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card group">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm mb-1">Last Updated</p>
+                            <h3 class="text-lg font-semibold text-white" id="lastUpdated">Just now</h3>
+                        </div>
+                        <div class="kpi-icon bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Feed -->
+            <div class="glass-panel p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <div class="pulse-dot mr-3"></div>
+                        Live Activity Feed
+                    </h2>
+                    <button id="refreshLogsBtn"
+                        class="text-accent hover:text-accent/80 transition-colors text-sm flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="activityFeed" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                    <!-- Activity items will be inserted here -->
+                    <div class="text-gray-500 text-center py-8">No activity yet. Click "Start Scan" to begin.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Intelligence Grid -->
+        <div id="intelligence-grid" class="tab-content">
+            <div class="glass-panel p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Product Intelligence</h2>
+                    <input type="text" id="searchInput" placeholder="Search products..." class="search-input">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="intelligence-table w-full" id="intelligenceTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-column="name">Product Name</th>
+                                <th class="sortable" data-column="category">Category</th>
+                                <th class="sortable" data-column="competitor">Competitor</th>
+                                <th class="sortable" data-column="price">Latest Price</th>
+                                <th>Position</th>
+                                <th class="sortable" data-column="sentiment">Sentiment</th>
+                                <th>Source Verification</th>
+                                <th>Business Insight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="intelligenceTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-gray-500 py-8">No data available. Run a scan to
+                                    populate the grid.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: SWOT Analysis -->
+        <div id="swot-analysis" class="tab-content">
+            <!-- Summary Section -->
+            <div id="swotSummary" class="mb-6">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Row 1: Growth-Focused (Strengths + Opportunities) -->
+                <div class="swot-card swot-strengths order-1">
+                    <div class="swot-header">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-bold">Strengths</h3>
+                    </div>
+                    <div id="swotStrengths" class="swot-content">
+                        <p class="text-gray-500">Analyzing data...</p>
+                    </div>
+                </div>
+
+                <div class="swot-card swot-opportunities order-2">
+                    <div class="swot-header">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <h3 class="text-lg font-bold">Opportunities</h3>
+                    </div>
+                    <div id="swotOpportunities" class="swot-content">
+                        <p class="text-gray-500">Analyzing data...</p>
+                    </div>
+                </div>
+
+                <!-- Row 2: Lower Priority (Weaknesses + Threats) -->
+                <div class="swot-card swot-weaknesses swot-low-priority order-3">
+                    <div class="swot-header">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                            </path>
+                        </svg>
+                        <h3 class="text-lg font-bold">Weaknesses</h3>
+                        <span class="text-xs text-gray-500 ml-2">(Low Priority)</span>
+                    </div>
+                    <div id="swotWeaknesses" class="swot-content">
+                        <p class="text-gray-500">Analyzing data...</p>
+                    </div>
+                </div>
+
+                <div class="swot-card swot-threats swot-low-priority order-4">
+                    <div class="swot-header">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <h3 class="text-lg font-bold">Threats</h3>
+                        <span class="text-xs text-gray-500 ml-2">(Low Priority)</span>
+                    </div>
+                    <div id="swotThreats" class="swot-content">
+                        <p class="text-gray-500">Analyzing data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <!-- Review Deep-Dive Modal -->
+    <div id="reviewModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-cyan-400">Customer Voices</h3>
+                <button onclick="closeReviewModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div id="modalProductInfo" class="mb-6 pb-4 border-bottom border-white/10">
+                <!-- Product name and context -->
+            </div>
+            <div id="modalReviewList" class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <!-- Reviews will be populated here -->
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeReviewModal()"
+                    class="px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded text-white font-semibold transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/market-pulse.js"></script>
+    <script src="js/intelligence-grid.js"></script>
+    <script src="js/swot-analysis.js"></script>
+</body>
+
+</html>

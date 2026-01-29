@@ -1,0 +1,19 @@
+# --- Node.js Dependencies ---
+node_modules/
+npm-debug.log*
+
+# --- Python Dependencies & Caches ---
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# --- Database & Secrets ---
+# Ignore the actual database file to keep repo size small
+*.db
+*.sqlite3
+.env
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
