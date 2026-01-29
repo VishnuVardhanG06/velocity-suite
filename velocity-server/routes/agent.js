@@ -3,7 +3,9 @@ const router = express.Router();
 const axios = require('axios');
 const { dbHelpers } = require('../models/db');
 
-// Helper to get the Agent URL dynamically and fix trailing slashes
+/**
+ * Helper to dynamically get Agent URL and clean trailing slashes
+ */
 const getAgentUrl = () => {
     let url = process.env.PYTHON_AGENT_URL || 'http://localhost:8000';
     if (url.endsWith('/')) {
@@ -17,48 +19,13 @@ router.get('/logs', (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
         const logs = dbHelpers.getRecentLogs(limit);
-
         res.json({
             success: true,
             count: logs.length,
             data: logs
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// POST /api/agent/log - Create log entry (internal use)
-router.post('/log', (req, res) => {
-    try {
-        const { action, status, details } = req.body;
-
-        if (!action || !status) {
-            return res.status(400).json({
-                success: false,
-                error: 'action and status are required'
-            });
-        }
-
-        const result = dbHelpers.createLog(action, status, details);
-
-        res.status(201).json({
-            success: true,
-            data: {
-                id: result.lastInsertRowid,
-                action,
-                status,
-                details
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -67,97 +34,103 @@ router.post('/start-scan', async (req, res) => {
     try {
         const { targets = ['default'] } = req.body;
 
-        // Log the scan start
+        // 1. Log the initiation in the DB
         dbHelpers.createLog(
             'Scan Initiated',
             'running',
-            `Starting autonomous scan for targets: ${targets.join(', ')}`
+            `Starting autonomous scan for: ${targets.join(', ')}`
         );
 
-        // Send immediate response to frontend so button doesn't spin forever
+        // 2. Respond to frontend immediately so the UI stays responsive
         res.json({
             success: true,
-            message: 'Scan initiated',
+            message: 'Scan initiated successfully',
             status: 'running'
         });
 
-        // Trigger Python agent asynchronously
-        triggerPythonAgent(targets).catch(error => {
-            console.error('Python agent error:', error);
-            dbHelpers.createLog(
-                'Scan Failed',
-                'error',
-                `Python agent error: ${error.message}`
-            );
+        // 3. Run the heavy lifting in the background
+        triggerPythonAgent(targets).catch(err => {
+            console.error('Background Agent Error:', err.message);
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Helper function to trigger Python agent
+/**
+ * Helper function to communicate with Python AI Agent
+ */
 async function triggerPythonAgent(targets) {
     const agentUrl = getAgentUrl();
-    try {
-        dbHelpers.createLog(
-            'Agent Communication',
-            'running',
-            `Contacting Python agent at ${agentUrl}/scrape`
-        );
+    const endpoint = `${agentUrl}/scrape`;
 
-        // Make the POST request to the Python Agent
-        const response = await axios.post(`${agentUrl}/scrape`, {
-            target: targets[0] // Sending first target or 'default'
+    try {
+        console.log(`[AGENT] Contacting Python AI at: ${endpoint}`);
+
+        dbHelpers.createLog('Agent Communication', 'running', `Requesting data from AI engine...`);
+
+        // Trigger the Python Scraper
+        const response = await axios.post(endpoint, {
+            target: targets[0] || 'default'
         }, {
-            timeout: 90000 // Extended 90 second timeout for cloud scraping
+            timeout: 120000 // 2 minute timeout for cloud browser startup
         });
 
-        // The Python agent returns { success: true, results: [...] }
         if (response.data && response.data.results) {
             const results = response.data.results;
+            console.log(`[AGENT] AI returned ${results.length} products.`);
 
-            // Save results to database (assuming dbHelpers has this)
-            if (dbHelpers.saveScrapedData) {
-                dbHelpers.saveScrapedData(results);
-            }
+            // Save each item to the database
+            // Note: Ensure your db.js has a createProduct function
+            results.forEach(item => {
+                try {
+                    dbHelpers.createProduct(
+                        item.name,
+                        item.category || 'General',
+                        item.competitor || 'Unknown',
+                        item.price || 0,
+                        item.sentiment_score || 0,
+                        item.sentiment_text || '',
+                        item.insight || '',
+                        item.source_url || ''
+                    );
+                } catch (dbErr) {
+                    console.error('[DATABASE] Failed to save item:', item.name, dbErr.message);
+                }
+            });
 
             dbHelpers.createLog(
                 'Scan Completed',
                 'success',
-                `Successfully scraped ${results.length} items from the AI Agent`
+                `Successfully processed ${results.length} new items.`
             );
         } else {
-            throw new Error('Invalid response format from Python Agent');
+            throw new Error('AI Agent returned an empty or invalid data format.');
         }
 
     } catch (error) {
-        const errorMsg = error.response ? `Agent responded with ${error.response.status}` : error.message;
+        const errorMsg = error.response ? `Agent Error (${error.response.status})` : error.message;
+        console.error(`[AGENT] Connection Failed: ${errorMsg}`);
+
         dbHelpers.createLog(
-            'Agent Error',
+            'Scan Failed',
             'error',
             `Communication failure: ${errorMsg}`
         );
-        console.error('Agent Trigger Error:', errorMsg);
     }
 }
 
-// GET /api/agent/status - Check agent status
+// GET /api/agent/status - Check health of the AI Agent
 router.get('/status', async (req, res) => {
     const agentUrl = getAgentUrl();
     try {
-        const response = await axios.get(`${agentUrl}/`, {
-            timeout: 5000
-        });
-
+        const response = await axios.get(`${agentUrl}/`, { timeout: 5000 });
         res.json({
             success: true,
             agent_status: 'online',
             agent_url: agentUrl,
-            agent_data: response.data
+            details: response.data
         });
     } catch (error) {
         res.json({
