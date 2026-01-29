@@ -19,8 +19,52 @@ async function initDatabase() {
         db = new SQL.Database();
     }
 
+    // --- AUTO-INITIALIZE TABLES IF THEY DON'T EXIST ---
+    db.run(`
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT,
+            competitor TEXT,
+            insight TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS prices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            price REAL,
+            currency TEXT,
+            source_url TEXT,
+            scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS sentiment_facts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            sentiment_score REAL,
+            sentiment_text TEXT,
+            source_url TEXT,
+            raw_reviews TEXT,
+            extracted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS agent_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action TEXT,
+            status TEXT,
+            details TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
+
     // Enable foreign keys
     db.run('PRAGMA foreign_keys = ON');
+
+    // Save the schema creation
+    saveDatabase();
 
     return db;
 }
@@ -154,90 +198,4 @@ const dbHelpers = {
             VALUES (?, ?, ?, ?, ?)
         `, [productId, sentimentScore, sentimentText, sourceUrl, rawReviews]);
 
-        const result = db.exec('SELECT last_insert_rowid() as id');
-        const id = result[0].values[0][0];
-
-        saveDatabase();
-        return id;
-    },
-
-    getAverageSentiment: () => {
-        const stmt = db.prepare(`
-            SELECT AVG(sentiment_score) as avg_sentiment 
-            FROM sentiment_facts
-        `);
-        stmt.step();
-        const result = stmt.getAsObject();
-        stmt.free();
-        return result.avg_sentiment || 0;
-    },
-
-    // Agent Logs
-    getRecentLogs: (limit = 50) => {
-        const stmt = db.prepare(`
-            SELECT * FROM agent_logs 
-            ORDER BY timestamp DESC 
-            LIMIT ?
-        `);
-        stmt.bind([limit]);
-        const results = [];
-        while (stmt.step()) {
-            results.push(stmt.getAsObject());
-        }
-        stmt.free();
-        return results;
-    },
-
-    createLog: (action, status, details = null) => {
-        db.run(`
-            INSERT INTO agent_logs (action, status, details)
-            VALUES (?, ?, ?)
-        `, [action, status, details]);
-        saveDatabase();
-    },
-
-    // Analytics
-    getProductWithDetails: (productId) => {
-        const stmt1 = db.prepare('SELECT * FROM products WHERE id = ?');
-        stmt1.bind([productId]);
-        let product = null;
-        if (stmt1.step()) {
-            product = stmt1.getAsObject();
-        }
-        stmt1.free();
-
-        if (!product) return null;
-
-        const stmt2 = db.prepare(`
-            SELECT * FROM prices 
-            WHERE product_id = ? 
-            ORDER BY scraped_at DESC
-        `);
-        stmt2.bind([productId]);
-        const prices = [];
-        while (stmt2.step()) {
-            prices.push(stmt2.getAsObject());
-        }
-        stmt2.free();
-
-        const stmt3 = db.prepare(`
-            SELECT * FROM sentiment_facts 
-            WHERE product_id = ? 
-            ORDER BY extracted_at DESC
-        `);
-        stmt3.bind([productId]);
-        const sentiments = [];
-        while (stmt3.step()) {
-            sentiments.push(stmt3.getAsObject());
-        }
-        stmt3.free();
-
-        return {
-            ...product,
-            prices,
-            sentiments
-        };
-    }
-};
-
-module.exports = { initDatabase, saveDatabase, dbHelpers };
+        const result = db
